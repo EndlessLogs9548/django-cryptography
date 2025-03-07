@@ -17,7 +17,12 @@ from django.core.signing import (
     b64_encode,
     get_cookie_signer,
 )
-from django.utils import baseconv
+try:
+    from django.utils import baseconv
+    b62_decode, b62_encode = baseconv.base62.decode, baseconv.base62.encode
+except ImportError:
+    from django.core.signing import b62_decode, b62_encode
+    
 from django.utils.encoding import force_bytes, force_str
 
 from ..utils.crypto import constant_time_compare, salted_hmac
@@ -138,7 +143,8 @@ class Signer:
 
 class TimestampSigner(Signer):
     def timestamp(self):
-        return baseconv.base62.encode(int(time.time()))
+        #return baseconv.base62.encode(int(time.time()))
+        return b62_encode(int(time.time()))
 
     def sign(self, value):
         value = force_str(value)
@@ -152,7 +158,8 @@ class TimestampSigner(Signer):
         """
         result = super().unsign(value)
         value, timestamp = result.rsplit(self.sep, 1)
-        timestamp = baseconv.base62.decode(timestamp)
+        #timestamp = baseconv.base62.decode(timestamp)
+        timestamp = b62_decode(timestamp)
         if max_age is not None:
             if isinstance(max_age, datetime.timedelta):
                 max_age = max_age.total_seconds()
